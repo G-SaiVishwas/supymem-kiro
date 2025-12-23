@@ -318,5 +318,83 @@ export const getFullDecisions = async (teamId?: string, limit = 20): Promise<Ful
   return data;
 };
 
+// =========================================================================
+// EXPORT APIs
+// =========================================================================
+
+export interface ExportOptions {
+  include_decisions: boolean;
+  include_knowledge: boolean;
+  include_tasks: boolean;
+  include_projects: boolean;
+  include_summaries: boolean;
+  include_statistics: boolean;
+  include_toc: boolean;
+}
+
+export interface ExportRequest {
+  team_id: string;
+  date_from?: string;
+  date_to?: string;
+  categories?: string[];
+  format: 'detailed' | 'summary';
+  options: ExportOptions;
+}
+
+export interface ExportPreview {
+  team_id: string;
+  counts: {
+    knowledge_entries: number;
+    decisions: number;
+    tasks: number;
+    projects: number;
+  };
+  categories: Record<string, number>;
+  estimated_pages: number;
+  available_sections: string[];
+}
+
+export const getExportPreview = async (teamId: string): Promise<ExportPreview> => {
+  const { data } = await legacyApi.get(`/export/preview?team_id=${teamId}`);
+  return data;
+};
+
+export const downloadExportPdf = async (request: ExportRequest): Promise<Blob> => {
+  const response = await legacyApi.post('/export/pdf', request, {
+    responseType: 'blob',
+  });
+  return response.data;
+};
+
+export const downloadExportPdfUrl = (
+  teamId: string,
+  options?: Partial<ExportOptions>,
+  dateFrom?: string,
+  dateTo?: string,
+  format: 'detailed' | 'summary' = 'detailed'
+): string => {
+  const params = new URLSearchParams({ team_id: teamId, format });
+  
+  if (dateFrom) params.append('date_from', dateFrom);
+  if (dateTo) params.append('date_to', dateTo);
+  
+  if (options) {
+    if (options.include_decisions !== undefined) 
+      params.append('include_decisions', String(options.include_decisions));
+    if (options.include_knowledge !== undefined) 
+      params.append('include_knowledge', String(options.include_knowledge));
+    if (options.include_tasks !== undefined) 
+      params.append('include_tasks', String(options.include_tasks));
+    if (options.include_projects !== undefined) 
+      params.append('include_projects', String(options.include_projects));
+    if (options.include_summaries !== undefined) 
+      params.append('include_summaries', String(options.include_summaries));
+    if (options.include_statistics !== undefined) 
+      params.append('include_statistics', String(options.include_statistics));
+  }
+  
+  return `/api/v1/export/pdf?${params.toString()}`;
+};
+
 export default legacyApi;
 

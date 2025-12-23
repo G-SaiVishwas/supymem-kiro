@@ -22,6 +22,7 @@ import {
 import { getTeamProductivity, getTasks, getAutomationRules, searchKnowledge, getTeamActivities, getGitHubEvents, getFullDecisions, type GitHubEvent, type FullDecision } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { AnimatedCounter } from '../components/effects';
+import { ExportButton } from '../components/export';
 import {
   AreaChart,
   Area,
@@ -40,6 +41,18 @@ const chartData = [
   { day: 'Sat', commits: 8, prs: 2, tasks: 3 },
   { day: 'Sun', commits: 5, prs: 1, tasks: 2 },
 ];
+
+// Format timestamp to IST (Indian Standard Time)
+function formatToIST(isoString: string): string {
+  const date = new Date(isoString);
+  return date.toLocaleTimeString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+}
 
 interface StatCardProps {
   title: string;
@@ -268,8 +281,11 @@ export default function Dashboard() {
             <p className="text-[var(--text-secondary)] text-lg">{getRoleDescription()}</p>
           </div>
           
-          <div className={`px-6 py-3 rounded-2xl bg-gradient-to-r ${getRoleBadgeStyle()} shadow-lg animate-float`}>
-            <span className="text-white font-semibold text-lg capitalize">{userRole}</span>
+          <div className="flex items-center gap-4">
+            <ExportButton variant="secondary" />
+            <div className={`px-6 py-3 rounded-2xl bg-gradient-to-r ${getRoleBadgeStyle()} shadow-lg animate-float`}>
+              <span className="text-white font-semibold text-lg capitalize">{userRole}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -338,7 +354,7 @@ export default function Dashboard() {
                             </span>
                           )}
                           <span className="text-xs text-[var(--text-muted)]">
-                            {new Date(event.created_at).toLocaleTimeString()}
+                            {formatToIST(event.created_at)} IST
                           </span>
                         </div>
                       </div>
