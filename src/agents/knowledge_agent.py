@@ -111,14 +111,43 @@ async def response_generation_node(state: AgentState) -> dict:
     """Generate response using LLM with context."""
     last_message = state["messages"][-1].content
     context = state.get("context", "")
+    
+    # Check if we have any actual knowledge
+    has_knowledge = (
+        context and 
+        "No relevant knowledge found" not in context and
+        "No relevant memories found" not in context.replace("User Context:\nNo relevant memories found.", "")
+    )
+    
+    # Check if context only contains "no results" messages
+    context_lines = context.strip().split('\n')
+    meaningful_content = [
+        line for line in context_lines 
+        if line.strip() and 
+        "No relevant" not in line and 
+        "Knowledge Base:" not in line and 
+        "User Context:" not in line
+    ]
+    
+    if not meaningful_content:
+        # No relevant knowledge found - return a clear message
+        return {
+            "messages": [AIMessage(content="I don't have any information about that in your team's knowledge base. This question doesn't seem to be related to your codebase, decisions, or team knowledge.\n\nTry asking about:\n• Past decisions and their reasoning\n• Codebase architecture\n• Team processes and workflows\n• Specific tasks or projects\n\nOr use `/remember` in Slack to add relevant knowledge first!")],
+            "current_action": "responded"
+        }
 
-    system_prompt = f"""You are Supymem, a collaborative knowledge agent.
-Use the following context to answer the user's question accurately.
-If you don't know something, say so honestly.
+    system_prompt = f"""You are Supymem, a collaborative knowledge agent for a software team.
 
-Context:
+IMPORTANT RULES:
+1. You can ONLY answer questions using the provided context from the team's knowledge base.
+2. If the context doesn't contain relevant information to answer the question, say "I don't have information about that in your team's knowledge base."
+3. NEVER use your general knowledge to answer questions. Only use the context provided.
+4. If the question is unrelated to software development, team processes, or the codebase, politely redirect the user.
+
+Context from knowledge base:
 {context}
-"""
+
+Answer the user's question ONLY using the above context. If the context doesn't help, say you don't have that information."""
 
     response = await llm_client.complete(
         messages=[
