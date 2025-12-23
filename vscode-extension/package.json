@@ -1,0 +1,117 @@
+{
+  "name": "supymem",
+  "displayName": "Supymem - AI Knowledge Agent",
+  "description": "Access team knowledge, decisions, and context right in your editor",
+  "version": "0.1.0",
+  "publisher": "supymem",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Machine Learning",
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "supymem.askAgent",
+        "title": "Supymem: Ask Knowledge Agent"
+      },
+      {
+        "command": "supymem.whyDecision",
+        "title": "Supymem: Why was this decided?"
+      },
+      {
+        "command": "supymem.whoKnows",
+        "title": "Supymem: Who knows about this?"
+      },
+      {
+        "command": "supymem.storeKnowledge",
+        "title": "Supymem: Store as Knowledge"
+      },
+      {
+        "command": "supymem.viewDecisions",
+        "title": "Supymem: View Decisions"
+      },
+      {
+        "command": "supymem.myTasks",
+        "title": "Supymem: My Tasks"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "supymem.askAgent",
+        "key": "ctrl+shift+k",
+        "mac": "cmd+shift+k"
+      }
+    ],
+    "configuration": {
+      "title": "Supymem",
+      "properties": {
+        "supymem.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "Supymem API server URL"
+        },
+        "supymem.teamId": {
+          "type": "string",
+          "default": "default",
+          "description": "Your team ID"
+        },
+        "supymem.username": {
+          "type": "string",
+          "default": "",
+          "description": "Your username (for activity tracking)"
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "supymem",
+          "title": "Supymem",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "supymem": [
+        {
+          "id": "supymem.tasks",
+          "name": "My Tasks"
+        },
+        {
+          "id": "supymem.decisions",
+          "name": "Recent Decisions"
+        },
+        {
+          "id": "supymem.activity",
+          "name": "Team Activity"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.2"
+  },
+  "dependencies": {
+    "axios": "^1.6.2"
+  }
+}
+
