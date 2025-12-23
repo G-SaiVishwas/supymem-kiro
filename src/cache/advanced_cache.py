@@ -10,7 +10,7 @@ from datetime import timedelta
 import asyncio
 from collections import OrderedDict
 
-from src.cache.redis_client import redis_client
+from src.cache.redis_client import cache as redis_client
 from src.config.logging import get_logger
 
 logger = get_logger(__name__)
