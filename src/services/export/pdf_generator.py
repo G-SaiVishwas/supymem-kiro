@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.database.models import (
     KnowledgeEntry, Decision, DecisionChallenge, Task, 
     Project, ProjectDocument, EngineerEntry, DailySummary,
-    Team, Organization
+    Team, Organization, GitHubEvent
 )
 from src.services.export.schemas import ExportRequest, ExportMetadata, ExportOptions
 from src.services.export.templates import (
@@ -93,6 +93,11 @@ class PDFExportService:
         # Decisions section
         if request.options.include_decisions and data.get("decisions"):
             story.extend(self._build_decisions_section(data["decisions"], request))
+            story.append(PageBreak())
+        
+        # GitHub events section (always included if available)
+        if data.get("github_events"):
+            story.extend(self._build_github_events_section(data["github_events"]))
             story.append(PageBreak())
         
         # Knowledge entries section
@@ -193,30 +198,47 @@ class PDFExportService:
             result = await self.db.execute(query)
             data["tasks"] = result.scalars().all()
         
-        # Fetch projects and documents
-        if request.options.include_projects:
-            # Note: Projects may not have team_id directly, fetching all for org
-            query = select(Project).order_by(Project.created_at.desc()).limit(50)
+        # Always fetch GitHub events (visible on dashboard)
+        try:
+            query = select(GitHubEvent).order_by(GitHubEvent.created_at.desc()).limit(50)
             result = await self.db.execute(query)
-            data["projects"] = result.scalars().all()
-            
-            project_ids = [p.id for p in data["projects"]]
-            if project_ids:
-                docs_query = select(ProjectDocument).where(
-                    ProjectDocument.project_id.in_(project_ids)
-                )
-                docs_result = await self.db.execute(docs_query)
-                data["documents"] = docs_result.scalars().all()
+            data["github_events"] = result.scalars().all()
+        except Exception as e:
+            logger.warning("Could not fetch GitHub events", error=str(e))
+            data["github_events"] = []
         
-        # Fetch daily summaries
+        # Fetch projects and documents (table may not exist)
+        if request.options.include_projects:
+            try:
+                query = select(Project).order_by(Project.created_at.desc()).limit(50)
+                result = await self.db.execute(query)
+                data["projects"] = result.scalars().all()
+                
+                project_ids = [p.id for p in data["projects"]]
+                if project_ids:
+                    docs_query = select(ProjectDocument).where(
+                        ProjectDocument.project_id.in_(project_ids)
+                    )
+                    docs_result = await self.db.execute(docs_query)
+                    data["documents"] = docs_result.scalars().all()
+            except Exception as e:
+                logger.warning("Could not fetch projects", error=str(e))
+                data["projects"] = []
+                data["documents"] = []
+        
+        # Fetch daily summaries (table may not exist)
         if request.options.include_summaries:
-            query = select(DailySummary).order_by(DailySummary.summary_date.desc()).limit(30)
-            if request.date_from:
-                query = query.where(DailySummary.summary_date >= request.date_from)
-            if request.date_to:
-                query = query.where(DailySummary.summary_date <= request.date_to)
-            result = await self.db.execute(query)
-            data["summaries"] = result.scalars().all()
+            try:
+                query = select(DailySummary).order_by(DailySummary.summary_date.desc()).limit(30)
+                if request.date_from:
+                    query = query.where(DailySummary.summary_date >= request.date_from)
+                if request.date_to:
+                    query = query.where(DailySummary.summary_date <= request.date_to)
+                result = await self.db.execute(query)
+                data["summaries"] = result.scalars().all()
+            except Exception as e:
+                logger.warning("Could not fetch summaries", error=str(e))
+                data["summaries"] = []
         
         return data
     
@@ -552,6 +574,60 @@ class PDFExportService:
         
         # Separator
         elements.append(HRFlowable(width="100%", thickness=0.5, color=COLORS["light"]))
+        
+        return elements
+    
+    def _build_github_events_section(self, events: List[GitHubEvent]) -> List:
+        """Build the GitHub events section."""
+        elements = []
+        
+        elements.append(Paragraph("GitHub Activity", self.styles['SectionHeader']))
+        elements.append(HRFlowable(width="100%", thickness=1, color=COLORS["primary"]))
+        elements.append(Spacer(1, 0.15 * inch))
+        elements.append(Paragraph(
+            f"Total: {len(events)} events",
+            self.styles['Metadata']
+        ))
+        elements.append(Spacer(1, 0.25 * inch))
+        
+        # Create events table
+        table_data = [["Event Type", "Repository", "Sender", "Status", "Date"]]
+        
+        for event in events[:50]:  # Limit to 50 events
+            event_type = event.event_type or "unknown"
+            if event.action:
+                event_type = f"{event_type} ({event.action})"
+            
+            repo = event.repository or "-"
+            if len(repo) > 30:
+                repo = "..." + repo[-27:]
+            
+            status = "Processed" if event.processed else "Pending"
+            
+            date_str = event.created_at.strftime('%Y-%m-%d %H:%M') if event.created_at else "-"
+            
+            table_data.append([
+                event_type,
+                repo,
+                event.sender or "-",
+                status,
+                date_str
+            ])
+        
+        if len(table_data) > 1:
+            events_table = Table(
+                table_data,
+                colWidths=[1.5*inch, 2*inch, 1.2*inch, 0.8*inch, 1*inch]
+            )
+            events_table.setStyle(TableStyle(TABLE_STYLE_DEFAULT))
+            elements.append(events_table)
+        
+        if len(events) > 50:
+            elements.append(Spacer(1, 0.1 * inch))
+            elements.append(Paragraph(
+                f"... and {len(events) - 50} more events",
+                self.styles['Metadata']
+            ))
         
         return elements
     

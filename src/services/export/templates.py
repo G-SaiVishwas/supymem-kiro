@@ -72,8 +72,13 @@ def get_styles():
     """Get customized paragraph styles for the PDF."""
     styles = getSampleStyleSheet()
     
+    # Helper to safely add styles (skip if already exists)
+    def safe_add(style):
+        if style.name not in [s.name for s in styles.byName.values()]:
+            styles.add(style)
+    
     # Title style - main document title
-    styles.add(ParagraphStyle(
+    safe_add(ParagraphStyle(
         name='DocTitle',
         parent=styles['Title'],
         fontSize=28,
@@ -85,7 +90,7 @@ def get_styles():
     ))
     
     # Subtitle style
-    styles.add(ParagraphStyle(
+    safe_add(ParagraphStyle(
         name='DocSubtitle',
         parent=styles['Normal'],
         fontSize=12,
@@ -97,7 +102,7 @@ def get_styles():
     ))
     
     # Section header style
-    styles.add(ParagraphStyle(
+    safe_add(ParagraphStyle(
         name='SectionHeader',
         parent=styles['Heading1'],
         fontSize=18,
@@ -110,7 +115,7 @@ def get_styles():
     ))
     
     # Subsection header style
-    styles.add(ParagraphStyle(
+    safe_add(ParagraphStyle(
         name='SubsectionHeader',
         parent=styles['Heading2'],
         fontSize=14,
@@ -122,7 +127,7 @@ def get_styles():
     ))
     
     # Item title style (for decisions, tasks, etc.)
-    styles.add(ParagraphStyle(
+    safe_add(ParagraphStyle(
         name='ItemTitle',
         parent=styles['Heading3'],
         fontSize=12,
@@ -133,9 +138,9 @@ def get_styles():
         fontName='Helvetica-Bold',
     ))
     
-    # Body text style
-    styles.add(ParagraphStyle(
-        name='BodyText',
+    # Custom body text style (use different name to avoid conflict)
+    safe_add(ParagraphStyle(
+        name='CustomBodyText',
         parent=styles['Normal'],
         fontSize=10,
         leading=14,
@@ -146,7 +151,7 @@ def get_styles():
     ))
     
     # Small text style
-    styles.add(ParagraphStyle(
+    safe_add(ParagraphStyle(
         name='SmallText',
         parent=styles['Normal'],
         fontSize=8,
@@ -157,7 +162,7 @@ def get_styles():
     ))
     
     # Metadata style
-    styles.add(ParagraphStyle(
+    safe_add(ParagraphStyle(
         name='Metadata',
         parent=styles['Normal'],
         fontSize=9,
@@ -168,7 +173,7 @@ def get_styles():
     ))
     
     # Quote/context style
-    styles.add(ParagraphStyle(
+    safe_add(ParagraphStyle(
         name='Quote',
         parent=styles['Normal'],
         fontSize=10,
@@ -186,7 +191,7 @@ def get_styles():
     ))
     
     # TOC entry style
-    styles.add(ParagraphStyle(
+    safe_add(ParagraphStyle(
         name='TOCEntry',
         parent=styles['Normal'],
         fontSize=11,
@@ -196,7 +201,7 @@ def get_styles():
     ))
     
     # TOC sub-entry style
-    styles.add(ParagraphStyle(
+    safe_add(ParagraphStyle(
         name='TOCSubEntry',
         parent=styles['Normal'],
         fontSize=10,
@@ -207,7 +212,7 @@ def get_styles():
     ))
     
     # Footer style
-    styles.add(ParagraphStyle(
+    safe_add(ParagraphStyle(
         name='Footer',
         parent=styles['Normal'],
         fontSize=8,
@@ -218,7 +223,7 @@ def get_styles():
     ))
     
     # Tag style
-    styles.add(ParagraphStyle(
+    safe_add(ParagraphStyle(
         name='Tag',
         parent=styles['Normal'],
         fontSize=8,
@@ -228,7 +233,7 @@ def get_styles():
     ))
     
     # Stat number style
-    styles.add(ParagraphStyle(
+    safe_add(ParagraphStyle(
         name='StatNumber',
         parent=styles['Normal'],
         fontSize=24,
@@ -239,7 +244,7 @@ def get_styles():
     ))
     
     # Stat label style
-    styles.add(ParagraphStyle(
+    safe_add(ParagraphStyle(
         name='StatLabel',
         parent=styles['Normal'],
         fontSize=10,
