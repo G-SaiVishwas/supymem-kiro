@@ -193,30 +193,38 @@ class PDFExportService:
             result = await self.db.execute(query)
             data["tasks"] = result.scalars().all()
         
-        # Fetch projects and documents
+        # Fetch projects and documents (table may not exist)
         if request.options.include_projects:
-            # Note: Projects may not have team_id directly, fetching all for org
-            query = select(Project).order_by(Project.created_at.desc()).limit(50)
-            result = await self.db.execute(query)
-            data["projects"] = result.scalars().all()
-            
-            project_ids = [p.id for p in data["projects"]]
-            if project_ids:
-                docs_query = select(ProjectDocument).where(
-                    ProjectDocument.project_id.in_(project_ids)
-                )
-                docs_result = await self.db.execute(docs_query)
-                data["documents"] = docs_result.scalars().all()
+            try:
+                query = select(Project).order_by(Project.created_at.desc()).limit(50)
+                result = await self.db.execute(query)
+                data["projects"] = result.scalars().all()
+                
+                project_ids = [p.id for p in data["projects"]]
+                if project_ids:
+                    docs_query = select(ProjectDocument).where(
+                        ProjectDocument.project_id.in_(project_ids)
+                    )
+                    docs_result = await self.db.execute(docs_query)
+                    data["documents"] = docs_result.scalars().all()
+            except Exception as e:
+                logger.warning("Could not fetch projects", error=str(e))
+                data["projects"] = []
+                data["documents"] = []
         
-        # Fetch daily summaries
+        # Fetch daily summaries (table may not exist)
         if request.options.include_summaries:
-            query = select(DailySummary).order_by(DailySummary.summary_date.desc()).limit(30)
-            if request.date_from:
-                query = query.where(DailySummary.summary_date >= request.date_from)
-            if request.date_to:
-                query = query.where(DailySummary.summary_date <= request.date_to)
-            result = await self.db.execute(query)
-            data["summaries"] = result.scalars().all()
+            try:
+                query = select(DailySummary).order_by(DailySummary.summary_date.desc()).limit(30)
+                if request.date_from:
+                    query = query.where(DailySummary.summary_date >= request.date_from)
+                if request.date_to:
+                    query = query.where(DailySummary.summary_date <= request.date_to)
+                result = await self.db.execute(query)
+                data["summaries"] = result.scalars().all()
+            except Exception as e:
+                logger.warning("Could not fetch summaries", error=str(e))
+                data["summaries"] = []
         
         return data
     

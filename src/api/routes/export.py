@@ -140,53 +140,77 @@ async def preview_export(
     Returns counts and sample data without generating the full PDF.
     """
     from sqlalchemy import select, func
-    from src.database.models import KnowledgeEntry, Decision, Task, Project
+    from src.database.models import KnowledgeEntry, Decision, Task
+    
+    knowledge_count = 0
+    decisions_count = 0
+    tasks_count = 0
+    projects_count = 0
+    categories = {}
     
     try:
-        # Count entries
-        knowledge_count = await db.scalar(
-            select(func.count(KnowledgeEntry.id)).where(
-                KnowledgeEntry.team_id == team_id,
-                KnowledgeEntry.is_deleted == False
-            )
-        )
+        # Count knowledge entries
+        try:
+            knowledge_count = await db.scalar(
+                select(func.count(KnowledgeEntry.id)).where(
+                    KnowledgeEntry.team_id == team_id,
+                    KnowledgeEntry.is_deleted == False
+                )
+            ) or 0
+        except Exception:
+            pass
         
-        decisions_count = await db.scalar(
-            select(func.count(Decision.id)).where(Decision.team_id == team_id)
-        )
+        # Count decisions
+        try:
+            decisions_count = await db.scalar(
+                select(func.count(Decision.id)).where(Decision.team_id == team_id)
+            ) or 0
+        except Exception:
+            pass
         
-        tasks_count = await db.scalar(
-            select(func.count(Task.id)).where(Task.team_id == team_id)
-        )
+        # Count tasks
+        try:
+            tasks_count = await db.scalar(
+                select(func.count(Task.id)).where(Task.team_id == team_id)
+            ) or 0
+        except Exception:
+            pass
         
-        projects_count = await db.scalar(select(func.count(Project.id)))
+        # Count projects (table may not exist)
+        try:
+            from src.database.models import Project
+            projects_count = await db.scalar(select(func.count(Project.id))) or 0
+        except Exception:
+            pass
         
         # Get category breakdown
-        from collections import defaultdict
-        category_result = await db.execute(
-            select(KnowledgeEntry.category, func.count(KnowledgeEntry.id))
-            .where(
-                KnowledgeEntry.team_id == team_id,
-                KnowledgeEntry.is_deleted == False
+        try:
+            category_result = await db.execute(
+                select(KnowledgeEntry.category, func.count(KnowledgeEntry.id))
+                .where(
+                    KnowledgeEntry.team_id == team_id,
+                    KnowledgeEntry.is_deleted == False
+                )
+                .group_by(KnowledgeEntry.category)
             )
-            .group_by(KnowledgeEntry.category)
-        )
-        categories = {row[0] or "other": row[1] for row in category_result.all()}
+            categories = {row[0] or "other": row[1] for row in category_result.all()}
+        except Exception:
+            pass
         
         return {
             "team_id": team_id,
             "counts": {
-                "knowledge_entries": knowledge_count or 0,
-                "decisions": decisions_count or 0,
-                "tasks": tasks_count or 0,
-                "projects": projects_count or 0,
+                "knowledge_entries": knowledge_count,
+                "decisions": decisions_count,
+                "tasks": tasks_count,
+                "projects": projects_count,
             },
             "categories": categories,
             "estimated_pages": max(
                 5,
-                ((knowledge_count or 0) // 20) + 
-                ((decisions_count or 0) // 5) + 
-                ((tasks_count or 0) // 30) + 
+                (knowledge_count // 20) + 
+                (decisions_count // 5) + 
+                (tasks_count // 30) + 
                 3
             ),
             "available_sections": [
