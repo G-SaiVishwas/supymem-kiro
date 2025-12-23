@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
-  MessageSquare,
   CheckSquare,
   GitBranch,
   Zap,
@@ -13,21 +12,19 @@ import {
   Users,
   LogOut,
   ChevronDown,
-  Sparkles,
   Command,
   Brain,
-  Mic,
-  FileText,
-  Image,
-  Calendar,
   Code2,
-  Cpu,
-  ToggleLeft,
-  ToggleRight,
+  Network,
+  Target,
+  Activity,
+  Shield,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useDashboardMode } from '../contexts/DashboardModeContext';
 import { CursorGlow } from '../components/effects';
+import { SystemHealthIndicator } from '../components/status/SystemHealthIndicator';
+import { ModeIndicator } from '../components/onboarding/ModeIndicator';
+import { TrustButton } from '../components/trust/TrustPanel';
 
 interface NavItem {
   name: string;
@@ -37,8 +34,15 @@ interface NavItem {
   gradient?: string;
 }
 
-// Software Mode Navigation (Original Supymem)
-const softwareNavigation: NavItem[] = [
+// System Understanding section
+const systemNavigation: NavItem[] = [
+  { name: 'System Map', href: '/system-map', icon: Network, gradient: 'from-cyan-500 to-purple-500' },
+  { name: 'Org Health', href: '/health', icon: Activity, gradient: 'from-green-500 to-cyan-500' },
+  { name: 'Intents', href: '/intents', icon: Target, gradient: 'from-purple-500 to-pink-500' },
+];
+
+// Main navigation
+const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard, gradient: 'from-cyan-500 to-blue-500' },
   { name: 'Ask Agent', href: '/ask', icon: Brain, gradient: 'from-purple-500 to-pink-500' },
   { name: 'Tasks', href: '/tasks', icon: CheckSquare, gradient: 'from-green-500 to-emerald-500' },
@@ -48,29 +52,18 @@ const softwareNavigation: NavItem[] = [
   { name: 'Team', href: '/team', icon: Users, requiredRoles: ['owner', 'admin', 'manager'], gradient: 'from-pink-500 to-rose-500' },
 ];
 
-// Hardware Mode Navigation (Omni Presence)
-const hardwareNavigation: NavItem[] = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard, gradient: 'from-purple-500 to-pink-500' },
-  { name: 'Ask Agent', href: '/ask', icon: Brain, gradient: 'from-cyan-500 to-blue-500' },
-  { name: 'Notes', href: '/notes', icon: FileText, gradient: 'from-green-500 to-emerald-500' },
-  { name: 'Todos', href: '/todos', icon: CheckSquare, gradient: 'from-amber-500 to-orange-500' },
-  { name: 'Media', href: '/media', icon: Image, gradient: 'from-pink-500 to-rose-500' },
-  { name: 'Summaries', href: '/summaries', icon: Calendar, gradient: 'from-blue-500 to-indigo-500' },
-  { name: 'Analytics', href: '/analytics', icon: BarChart3, requiredRoles: ['owner', 'admin', 'manager'], gradient: 'from-violet-500 to-purple-500' },
-  { name: 'Team', href: '/team', icon: Users, requiredRoles: ['owner', 'admin', 'manager'], gradient: 'from-teal-500 to-cyan-500' },
+// Trust section
+const trustNavigation: NavItem[] = [
+  { name: 'Trust & Privacy', href: '/trust', icon: Shield, gradient: 'from-green-500 to-emerald-500' },
 ];
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, currentOrg, organizations, logout, switchOrganization } = useAuth();
-  const { mode, toggleMode } = useDashboardMode();
   const [showOrgDropdown, setShowOrgDropdown] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
-
-  // Get navigation based on current mode
-  const navigation = mode === 'hardware' ? hardwareNavigation : softwareNavigation;
 
   const handleLogout = () => {
     logout();
@@ -116,19 +109,15 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         <div className="border-b border-[var(--border-subtle)]">
           <div className="h-16 flex items-center px-6">
             <div className="flex items-center gap-3 group cursor-pointer">
-              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${mode === 'software' ? 'from-cyan-500 to-blue-500 shadow-cyan-500/20 group-hover:shadow-cyan-500/40' : 'from-purple-500 to-pink-500 shadow-purple-500/20 group-hover:shadow-purple-500/40'} flex items-center justify-center shadow-lg transition-shadow`}>
-                {mode === 'software' ? (
-                  <Code2 className="w-5 h-5 text-white" />
-                ) : (
-                  <Brain className="w-5 h-5 text-white" />
-                )}
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 shadow-cyan-500/20 group-hover:shadow-cyan-500/40 flex items-center justify-center shadow-lg transition-shadow">
+                <Code2 className="w-5 h-5 text-white" />
               </div>
               <div className="flex flex-col">
                 <span className="text-lg font-bold text-white tracking-tight leading-tight">
-                  {mode === 'software' ? 'Supymem' : 'Omni'}
+                  Supymem
                 </span>
-                <span className={`text-xs font-medium -mt-0.5 ${mode === 'software' ? 'text-cyan-400' : 'text-purple-400'}`}>
-                  {mode === 'software' ? 'Knowledge Hub' : 'Presence'}
+                <span className="text-xs font-medium -mt-0.5 text-cyan-400">
+                  Knowledge Hub
                 </span>
               </div>
             </div>
@@ -174,69 +163,104 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               )}
             </div>
           )}
-
-          {/* Mode Toggle */}
-          <div className="px-4 pb-4">
-            <button
-              onClick={toggleMode}
-              className="w-full flex items-center justify-between px-4 py-3 bg-[var(--void-surface)] rounded-xl border border-[var(--border-subtle)] hover:border-[var(--border-default)] hover:bg-[var(--void-elevated)] transition-all duration-200 group"
-            >
-              <div className="flex items-center gap-3">
-                {mode === 'software' ? (
-                  <Code2 className="w-5 h-5 text-cyan-400" />
-                ) : (
-                  <Cpu className="w-5 h-5 text-purple-400" />
-                )}
-                <span className="text-sm font-medium text-white">
-                  {mode === 'software' ? 'Software' : 'Hardware'} Mode
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-[var(--text-muted)]">
-                  {mode === 'software' ? 'Switch to HW' : 'Switch to SW'}
-                </span>
-                {mode === 'software' ? (
-                  <ToggleLeft className="w-5 h-5 text-cyan-400" />
-                ) : (
-                  <ToggleRight className="w-5 h-5 text-purple-400" />
-                )}
-              </div>
-            </button>
-          </div>
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {filteredNavigation.map((item, index) => {
-            const isActive = location.pathname === item.href;
-            return (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={`
-                  group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative overflow-hidden
-                  ${isActive
-                    ? 'bg-gradient-to-r ' + item.gradient + ' text-white shadow-lg'
-                    : 'text-[var(--text-secondary)] hover:text-white hover:bg-[var(--void-surface)]'
-                  }
-                `}
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                {/* Glow effect for active */}
-                {isActive && (
-                  <div className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-20 blur-xl`} />
-                )}
-                
-                <item.icon className={`w-5 h-5 relative z-10 ${isActive ? '' : 'group-hover:scale-110'} transition-transform`} />
-                <span className="font-medium relative z-10">{item.name}</span>
-                
-                {/* Hover indicator */}
-                {!isActive && (
-                  <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 group-hover:h-8 bg-gradient-to-b ${item.gradient} rounded-r-full transition-all duration-300`} />
-                )}
-              </Link>
-            );
-          })}
+          {/* System Understanding Section */}
+          <div className="mb-4">
+            <p className="px-4 py-2 text-xs font-medium text-[var(--text-ghost)] uppercase tracking-wider">
+              System
+            </p>
+            {systemNavigation.map((item, index) => {
+              const isActive = location.pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={`
+                    group flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 relative overflow-hidden
+                    ${isActive
+                      ? 'bg-gradient-to-r ' + item.gradient + ' text-white shadow-lg'
+                      : 'text-[var(--text-secondary)] hover:text-white hover:bg-[var(--void-surface)]'
+                    }
+                  `}
+                >
+                  {isActive && (
+                    <div className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-20 blur-xl`} />
+                  )}
+                  <item.icon className={`w-4 h-4 relative z-10 ${isActive ? '' : 'group-hover:scale-110'} transition-transform`} />
+                  <span className="font-medium text-sm relative z-10">{item.name}</span>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Main Navigation Section */}
+          <div className="mb-4">
+            <p className="px-4 py-2 text-xs font-medium text-[var(--text-ghost)] uppercase tracking-wider">
+              Workspace
+            </p>
+            {filteredNavigation.map((item, index) => {
+              const isActive = location.pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={`
+                    group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative overflow-hidden
+                    ${isActive
+                      ? 'bg-gradient-to-r ' + item.gradient + ' text-white shadow-lg'
+                      : 'text-[var(--text-secondary)] hover:text-white hover:bg-[var(--void-surface)]'
+                    }
+                  `}
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  {/* Glow effect for active */}
+                  {isActive && (
+                    <div className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-20 blur-xl`} />
+                  )}
+                  
+                  <item.icon className={`w-5 h-5 relative z-10 ${isActive ? '' : 'group-hover:scale-110'} transition-transform`} />
+                  <span className="font-medium relative z-10">{item.name}</span>
+                  
+                  {/* Hover indicator */}
+                  {!isActive && (
+                    <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 group-hover:h-8 bg-gradient-to-b ${item.gradient} rounded-r-full transition-all duration-300`} />
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Trust Section */}
+          <div>
+            <p className="px-4 py-2 text-xs font-medium text-[var(--text-ghost)] uppercase tracking-wider">
+              Transparency
+            </p>
+            {trustNavigation.map((item) => {
+              const isActive = location.pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={`
+                    group flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 relative overflow-hidden
+                    ${isActive
+                      ? 'bg-gradient-to-r ' + item.gradient + ' text-white shadow-lg'
+                      : 'text-[var(--text-secondary)] hover:text-white hover:bg-[var(--void-surface)]'
+                    }
+                  `}
+                >
+                  {isActive && (
+                    <div className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-20 blur-xl`} />
+                  )}
+                  <item.icon className={`w-4 h-4 relative z-10 ${isActive ? '' : 'group-hover:scale-110'} transition-transform`} />
+                  <span className="font-medium text-sm relative z-10">{item.name}</span>
+                </Link>
+              );
+            })}
+          </div>
         </nav>
 
         {/* Bottom Section */}
@@ -293,6 +317,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
           {/* Right Actions */}
           <div className="flex items-center gap-4">
+            {/* System Health */}
+            <SystemHealthIndicator variant="compact" />
+            
+            {/* Mode Indicator */}
+            <ModeIndicator showUpgradeHint={true} />
+
             {/* Role Badge */}
             <span className={`px-3 py-1.5 text-xs font-medium rounded-lg border ${getRoleBadgeStyle(userRole)}`}>
               {userRole}
@@ -357,6 +387,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           </div>
         </main>
       </div>
+
+      {/* Trust Button (floating) */}
+      <TrustButton />
     </div>
   );
 }

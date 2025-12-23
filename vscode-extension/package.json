@@ -1,16 +1,24 @@
 {
   "name": "supymem",
-  "displayName": "Supymem - AI Knowledge Agent",
-  "description": "Access team knowledge, decisions, and context right in your editor",
-  "version": "0.1.0",
+  "displayName": "Supymem - AI Decision Control Plane",
+  "description": "Decision-context overlay for AI-first development. Air-traffic control for human judgment in AI execution.",
+  "version": "0.2.0",
   "publisher": "supymem",
+  "icon": "resources/icon.svg",
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": [
     "Other",
     "Machine Learning",
-    "Programming Languages"
+    "Visualization"
+  ],
+  "keywords": [
+    "AI",
+    "decisions",
+    "knowledge",
+    "governance",
+    "intent"
   ],
   "activationEvents": [
     "onStartupFinished"
@@ -20,27 +28,93 @@
     "commands": [
       {
         "command": "supymem.askAgent",
-        "title": "Supymem: Ask Knowledge Agent"
+        "title": "Supymem: Ask Knowledge Agent",
+        "icon": "$(comment-discussion)"
       },
       {
         "command": "supymem.whyDecision",
-        "title": "Supymem: Why was this decided?"
+        "title": "Supymem: Why was this decided?",
+        "icon": "$(question)"
       },
       {
         "command": "supymem.whoKnows",
-        "title": "Supymem: Who knows about this?"
+        "title": "Supymem: Who knows about this?",
+        "icon": "$(person)"
       },
       {
         "command": "supymem.storeKnowledge",
-        "title": "Supymem: Store as Knowledge"
+        "title": "Supymem: Store as Knowledge",
+        "icon": "$(save)"
       },
       {
         "command": "supymem.viewDecisions",
-        "title": "Supymem: View Decisions"
+        "title": "Supymem: View All Decisions",
+        "icon": "$(list-tree)"
       },
       {
         "command": "supymem.myTasks",
-        "title": "Supymem: My Tasks"
+        "title": "Supymem: My Tasks",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "supymem.showIntentPanel",
+        "title": "Supymem: Show Intent Panel",
+        "icon": "$(target)"
+      },
+      {
+        "command": "supymem.showDecisionTrace",
+        "title": "Supymem: Show Decision Trace",
+        "icon": "$(git-commit)"
+      },
+      {
+        "command": "supymem.whyExists",
+        "title": "Supymem: Why does this exist?",
+        "icon": "$(info)"
+      },
+      {
+        "command": "supymem.whatBreaks",
+        "title": "Supymem: What would break if removed?",
+        "icon": "$(warning)"
+      },
+      {
+        "command": "supymem.checkConstraints",
+        "title": "Supymem: Check Active Constraints",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "supymem.showAgentStatus",
+        "title": "Supymem: Show Agent Status",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "supymem.analyzeChange",
+        "title": "Supymem: Analyze Pending Changes",
+        "icon": "$(git-compare)"
+      },
+      {
+        "command": "supymem.toggleConstraintMarkers",
+        "title": "Supymem: Toggle Constraint Markers",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "supymem.refreshTasks",
+        "title": "Refresh Tasks",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "supymem.refreshDecisions",
+        "title": "Refresh Decisions",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "supymem.refreshActivity",
+        "title": "Refresh Activity",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "supymem.refreshAgents",
+        "title": "Refresh Agents",
+        "icon": "$(refresh)"
       }
     ],
     "keybindings": [
@@ -48,6 +122,16 @@
         "command": "supymem.askAgent",
         "key": "ctrl+shift+k",
         "mac": "cmd+shift+k"
+      },
+      {
+        "command": "supymem.showIntentPanel",
+        "key": "ctrl+shift+i",
+        "mac": "cmd+shift+i"
+      },
+      {
+        "command": "supymem.checkConstraints",
+        "key": "ctrl+shift+c",
+        "mac": "cmd+shift+c"
       }
     ],
     "configuration": {
@@ -67,6 +151,21 @@
           "type": "string",
           "default": "",
           "description": "Your username (for activity tracking)"
+        },
+        "supymem.showConstraintMarkers": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show constraint markers in the gutter"
+        },
+        "supymem.enableChangeWarnings": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show warnings when changes conflict with decisions"
+        },
+        "supymem.autoRefreshInterval": {
+          "type": "number",
+          "default": 60,
+          "description": "Auto-refresh interval in seconds (0 to disable)"
         }
       }
     },
@@ -82,31 +181,162 @@
     "views": {
       "supymem": [
         {
+          "type": "webview",
+          "id": "supymem.intentPanel",
+          "name": "Intent & Context",
+          "icon": "$(target)",
+          "contextualTitle": "Current Intent"
+        },
+        {
           "id": "supymem.tasks",
-          "name": "My Tasks"
+          "name": "My Tasks",
+          "icon": "$(checklist)"
         },
         {
           "id": "supymem.decisions",
-          "name": "Recent Decisions"
+          "name": "Decisions",
+          "icon": "$(bookmark)"
         },
         {
           "id": "supymem.activity",
-          "name": "Team Activity"
+          "name": "Team Activity",
+          "icon": "$(pulse)"
+        },
+        {
+          "id": "supymem.agents",
+          "name": "Agent Status",
+          "icon": "$(robot)"
         }
       ]
-    }
+    },
+    "viewsWelcome": [
+      {
+        "view": "supymem.tasks",
+        "contents": "No tasks found.\n[Refresh Tasks](command:supymem.refreshTasks)"
+      },
+      {
+        "view": "supymem.decisions",
+        "contents": "No decisions recorded yet.\n[View All Decisions](command:supymem.viewDecisions)"
+      },
+      {
+        "view": "supymem.agents",
+        "contents": "No active agents.\n[Check Agent Status](command:supymem.showAgentStatus)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "supymem.refreshTasks",
+          "when": "view == supymem.tasks",
+          "group": "navigation"
+        },
+        {
+          "command": "supymem.refreshDecisions",
+          "when": "view == supymem.decisions",
+          "group": "navigation"
+        },
+        {
+          "command": "supymem.refreshActivity",
+          "when": "view == supymem.activity",
+          "group": "navigation"
+        },
+        {
+          "command": "supymem.refreshAgents",
+          "when": "view == supymem.agents",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "supymem.whyExists",
+          "group": "supymem@1",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "supymem.whatBreaks",
+          "group": "supymem@2",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "supymem.whoKnows",
+          "group": "supymem@3",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "supymem.whyDecision",
+          "group": "supymem@4",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "supymem.storeKnowledge",
+          "group": "supymem@5",
+          "when": "editorHasSelection"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "supymem.whyExists",
+          "group": "supymem@1"
+        },
+        {
+          "command": "supymem.showDecisionTrace",
+          "group": "supymem@2"
+        }
+      ]
+    },
+    "colors": [
+      {
+        "id": "supymem.constraintCritical",
+        "description": "Color for critical constraints",
+        "defaults": {
+          "dark": "#ff4444",
+          "light": "#cc0000",
+          "highContrast": "#ff0000"
+        }
+      },
+      {
+        "id": "supymem.constraintHigh",
+        "description": "Color for high-priority constraints",
+        "defaults": {
+          "dark": "#ff8800",
+          "light": "#cc6600",
+          "highContrast": "#ff8800"
+        }
+      },
+      {
+        "id": "supymem.constraintMedium",
+        "description": "Color for medium-priority constraints",
+        "defaults": {
+          "dark": "#ffcc00",
+          "light": "#cc9900",
+          "highContrast": "#ffcc00"
+        }
+      },
+      {
+        "id": "supymem.intentHighlight",
+        "description": "Color for intent highlights",
+        "defaults": {
+          "dark": "#4fc3f7",
+          "light": "#0277bd",
+          "highContrast": "#4fc3f7"
+        }
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "lint": "eslint src --ext ts"
+    "pretest": "npm run compile",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
     "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
+    "@vscode/vsce": "^2.22.0",
     "eslint": "^8.54.0",
     "typescript": "^5.3.2"
   },
@@ -114,4 +344,3 @@
     "axios": "^1.6.2"
   }
 }
-

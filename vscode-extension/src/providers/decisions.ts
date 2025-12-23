@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
-import { SupymemAPI } from '../api';
+import { SupymemAPI, DecisionSummary } from '../api';
 
 export class DecisionsProvider implements vscode.TreeDataProvider<DecisionItem> {
     private _onDidChangeTreeData = new vscode.EventEmitter<DecisionItem | undefined | null | void>();
     readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-    private decisions: any[] = [];
+    private decisions: DecisionSummary[] = [];
     private api: SupymemAPI;
 
     constructor(api: SupymemAPI) {
@@ -54,14 +54,26 @@ export class DecisionsProvider implements vscode.TreeDataProvider<DecisionItem> 
             )]);
         }
 
-        const items = this.decisions.slice(0, 15).map(decision => new DecisionItem(
+        // Group by category
+        const byCategory = new Map<string, DecisionSummary[]>();
+        this.decisions.forEach(d => {
+            const cat = d.category || 'general';
+            if (!byCategory.has(cat)) {
+                byCategory.set(cat, []);
+            }
+            byCategory.get(cat)!.push(d);
+        });
+
+        // Flatten but limit
+        const items = this.decisions.slice(0, 20).map(decision => new DecisionItem(
             decision.title,
-            decision.category,
-            decision.importance,
-            decision.decided_by,
+            decision.category || null,
+            decision.importance || null,
+            decision.decided_by || null,
             decision.created_at,
             decision.id,
-            false
+            false,
+            decision.summary
         ));
 
         return Promise.resolve(items);
@@ -76,7 +88,8 @@ export class DecisionItem extends vscode.TreeItem {
         public readonly decidedBy: string | null,
         public readonly createdAt: string,
         public readonly decisionId: string,
-        public readonly isPlaceholder: boolean = false
+        public readonly isPlaceholder: boolean = false,
+        public readonly summary?: string
     ) {
         super(title, vscode.TreeItemCollapsibleState.None);
 
@@ -108,25 +121,49 @@ export class DecisionItem extends vscode.TreeItem {
             process: 'workflow',
             design: 'paintcan',
             security: 'shield',
-            performance: 'dashboard'
+            performance: 'dashboard',
+            feature: 'lightbulb'
         };
 
-        this.description = `${importanceColors[importance || 'medium'] || '⚪'} ${category || 'general'}`;
+        // Description with importance and category
+        const descParts = [importanceColors[importance || 'medium'] || '⚪'];
+        if (category) {
+            descParts.push(category);
+        }
+        this.description = descParts.join(' ');
         
+        // Rich tooltip
         const date = createdAt ? new Date(createdAt).toLocaleDateString() : 'Unknown date';
-        this.tooltip = new vscode.MarkdownString(
-            `**${title}**\n\n` +
-            `- Category: ${category || 'N/A'}\n` +
-            `- Importance: ${importance || 'N/A'}\n` +
-            `- Decided by: ${decidedBy || 'Unknown'}\n` +
-            `- Date: ${date}\n\n` +
-            `*Click to view details*`
+        const tooltipLines = [
+            `**${title}**`,
+            ''
+        ];
+        
+        if (summary) {
+            tooltipLines.push(summary, '');
+        }
+        
+        tooltipLines.push(
+            `- Category: ${category || 'N/A'}`,
+            `- Importance: ${importance || 'N/A'}`,
+            `- Decided by: ${decidedBy || 'Unknown'}`,
+            `- Date: ${date}`,
+            '',
+            '*Click to view details and reasoning*'
         );
+        
+        this.tooltip = new vscode.MarkdownString(tooltipLines.join('\n'));
         this.contextValue = 'decision';
+        
+        // Icon based on category or importance
         this.iconPath = new vscode.ThemeIcon(
-            categoryIcons[category || ''] || importanceIcons[importance || 'medium'] || 'bookmark'
+            categoryIcons[category || ''] || importanceIcons[importance || 'medium'] || 'bookmark',
+            importance === 'critical' || importance === 'high' 
+                ? new vscode.ThemeColor('charts.orange')
+                : undefined
         );
 
+        // Command to view decision
         this.command = {
             command: 'supymem.viewDecision',
             title: 'View Decision',

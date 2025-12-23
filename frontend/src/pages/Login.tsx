@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useDashboardMode } from '../contexts/DashboardModeContext';
 import { ParticleField } from '../components/effects';
-import { Sparkles, ArrowRight, Zap, Shield, Brain, Code2, Cpu, CheckSquare, GitBranch, Mic, Camera, FileText, Calendar } from 'lucide-react';
+import { Sparkles, ArrowRight, Brain, Code2, CheckSquare, GitBranch, Zap, BarChart3 } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -12,7 +11,6 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const { login } = useAuth();
-  const { mode, setMode } = useDashboardMode();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,19 +37,13 @@ export default function Login() {
     { label: 'Viewer', email: 'viewer@demo.com', icon: '👁', color: 'from-orange-500 to-amber-500' },
   ];
 
-  const softwareFeatures = [
+  const features = [
     { icon: Brain, label: 'AI Knowledge Agent', desc: 'Team memory that never forgets' },
     { icon: CheckSquare, label: 'Task Management', desc: 'Track work across repos' },
     { icon: GitBranch, label: 'Decision Tracking', desc: 'Why was this built this way?' },
+    { icon: Zap, label: 'Automations', desc: 'Automate your workflow' },
+    { icon: BarChart3, label: 'Team Analytics', desc: 'Insights into team performance' },
   ];
-
-  const hardwareFeatures = [
-    { icon: Mic, label: 'Voice Capture', desc: 'Speak naturally while working' },
-    { icon: Camera, label: 'Image Notes', desc: 'Capture schematics and boards' },
-    { icon: Calendar, label: 'Daily Summaries', desc: 'AI-generated work reports' },
-  ];
-
-  const features = mode === 'hardware' ? hardwareFeatures : softwareFeatures;
 
   return (
     <div className="min-h-screen flex bg-[var(--void-deepest)] overflow-hidden">
@@ -70,73 +62,30 @@ export default function Login() {
           {/* Logo */}
           <div className="animate-slide-up">
             <div className="flex items-center gap-3">
-              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${mode === 'software' ? 'from-cyan-500 to-blue-500 shadow-cyan-500/30' : 'from-purple-500 to-pink-500 shadow-purple-500/30'} flex items-center justify-center shadow-lg`}>
-                {mode === 'software' ? (
-                  <Code2 className="w-6 h-6 text-white" />
-                ) : (
-                  <Brain className="w-6 h-6 text-white" />
-                )}
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 shadow-cyan-500/30 flex items-center justify-center shadow-lg">
+                <Code2 className="w-6 h-6 text-white" />
               </div>
               <div className="flex flex-col">
                 <span className="text-2xl font-bold text-white tracking-tight leading-tight">
-                  {mode === 'software' ? 'Supymem' : 'Omni'}
+                  Supymem
                 </span>
-                <span className={`text-sm font-medium -mt-1 ${mode === 'software' ? 'text-cyan-400' : 'text-purple-400'}`}>
-                  {mode === 'software' ? 'Knowledge Hub' : 'Presence'}
+                <span className="text-sm font-medium -mt-1 text-cyan-400">
+                  Knowledge Hub
                 </span>
               </div>
             </div>
-          </div>
-
-          {/* Mode Toggle */}
-          <div className="flex gap-2 animate-slide-up">
-            <button
-              onClick={() => setMode('software')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
-                mode === 'software' 
-                  ? 'bg-cyan-500/20 border border-cyan-500/50 text-cyan-400' 
-                  : 'bg-[var(--void-surface)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-default)]'
-              }`}
-            >
-              <Code2 className="w-4 h-4" />
-              Software
-            </button>
-            <button
-              onClick={() => setMode('hardware')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
-                mode === 'hardware' 
-                  ? 'bg-purple-500/20 border border-purple-500/50 text-purple-400' 
-                  : 'bg-[var(--void-surface)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-default)]'
-              }`}
-            >
-              <Cpu className="w-4 h-4" />
-              Hardware
-            </button>
           </div>
 
           {/* Main Content */}
           <div className="space-y-8">
             <div className="animate-slide-up stagger-2">
               <h1 className="text-5xl font-bold leading-tight">
-                {mode === 'software' ? (
-                  <>
-                    <span className="text-white">Your team's</span>
-                    <br />
-                    <span className="gradient-text">collective memory</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-white">Your personal</span>
-                    <br />
-                    <span className="gradient-text">AI agent</span>
-                  </>
-                )}
+                <span className="text-white">Your team's</span>
+                <br />
+                <span className="gradient-text">collective memory</span>
               </h1>
               <p className="mt-6 text-xl text-[var(--text-secondary)] max-w-md leading-relaxed">
-                {mode === 'software' 
-                  ? 'The AI knowledge agent that never forgets. Track decisions, tasks, and context across your codebase.'
-                  : 'Capture your engineering context through voice and images. Your agent remembers everything.'
-                }
+                The AI knowledge agent that never forgets. Track decisions, tasks, and context across your codebase.
               </p>
             </div>
 
