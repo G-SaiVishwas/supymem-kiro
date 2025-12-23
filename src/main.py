@@ -17,6 +17,7 @@ from src.api.routes.analytics import router as analytics_router
 from src.api.routes.auth import router as auth_router
 from src.api.routes.intent import router as intent_router
 from src.api.routes.constraints import router as constraints_router
+from src.api.routes.export import router as export_router
 from src.integrations.github.webhooks import router as github_router
 from src.api.middleware import RequestLoggingMiddleware, TeamContextMiddleware
 from src.api.exceptions import SupymemException, to_http_exception
@@ -129,6 +130,7 @@ app.include_router(decisions_router, prefix="/api/v1", tags=["decisions"])
 app.include_router(analytics_router, prefix="/api/v1", tags=["analytics"])
 app.include_router(intent_router, prefix="/api/v1", tags=["intent"])
 app.include_router(constraints_router, prefix="/api/v1", tags=["constraints"])
+app.include_router(export_router, prefix="/api/v1", tags=["export"])
 app.include_router(github_router, tags=["github"])
 
 # Mount Prometheus metrics endpoint

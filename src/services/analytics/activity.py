@@ -8,7 +8,7 @@ Tracks all user activities for:
 """
 
 from typing import Dict, List, Optional, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass
 import uuid
 
@@ -19,6 +19,16 @@ from src.database.models import UserActivity, ActivityType
 from src.config.logging import get_logger
 
 logger = get_logger(__name__)
+
+
+def ensure_naive_utc(dt: Optional[datetime]) -> Optional[datetime]:
+    """Convert timezone-aware datetime to naive UTC datetime for database storage."""
+    if dt is None:
+        return None
+    if dt.tzinfo is not None:
+        # Convert to UTC and remove timezone info
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
 
 
 @dataclass
@@ -69,7 +79,8 @@ class ActivityTracker:
             Activity ID
         """
         activity_id = str(uuid.uuid4())
-        timestamp = timestamp or datetime.utcnow()
+        # Ensure timestamp is naive UTC for database storage
+        timestamp = ensure_naive_utc(timestamp) or datetime.utcnow()
         
         async with get_session() as session:
             activity = UserActivity(

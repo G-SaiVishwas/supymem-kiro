@@ -5,12 +5,16 @@ Endpoints for viewing, creating, updating, and challenging decisions.
 """
 
 from typing import Optional, List, Dict, Any
+from datetime import datetime
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
+from sqlalchemy import select, desc
 
 from src.services.debate import challenge_service
 from src.services.decisions import DecisionService
 from src.config.logging import get_logger
+from src.database.session import get_session
+from src.database.models import GitHubEvent, Decision
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -362,5 +366,130 @@ async def challenge_specific_decision(
         return result
     except Exception as e:
         logger.error("Challenge decision error", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# GITHUB EVENTS ENDPOINTS (for demo/debugging)
+# ============================================================================
+
+class GitHubEventResponse(BaseModel):
+    id: str
+    event_type: str
+    action: Optional[str]
+    repository: str
+    sender: Optional[str]
+    pr_number: Optional[int]
+    issue_number: Optional[int]
+    processed: bool
+    is_breaking_change: bool
+    created_at: str
+    processing_result: Optional[dict] = None
+
+
+class FullDecisionResponse(BaseModel):
+    id: str
+    title: str
+    summary: Optional[str]
+    reasoning: Optional[str]
+    alternatives_considered: List[dict] = []
+    context: Optional[str]
+    impact: Optional[str]
+    source_type: str
+    source_id: Optional[str]
+    source_url: Optional[str]
+    decided_by: Optional[str]
+    participants: List[str] = []
+    affected_files: List[str] = []
+    affected_components: List[str] = []
+    category: Optional[str]
+    importance: Optional[str]
+    created_at: str
+
+
+@router.get("/github-events", response_model=List[GitHubEventResponse])
+async def list_github_events(
+    repository: Optional[str] = None,
+    limit: int = 20
+):
+    """
+    List recent GitHub webhook events (for demo/debugging).
+    Shows the raw events received from GitHub.
+    """
+    try:
+        async with get_session() as session:
+            query = select(GitHubEvent).order_by(desc(GitHubEvent.created_at)).limit(limit)
+            
+            if repository:
+                query = query.where(GitHubEvent.repository == repository)
+            
+            result = await session.execute(query)
+            events = result.scalars().all()
+            
+            return [
+                GitHubEventResponse(
+                    id=e.id,
+                    event_type=e.event_type,
+                    action=e.action,
+                    repository=e.repository,
+                    sender=e.sender,
+                    pr_number=e.pr_number,
+                    issue_number=e.issue_number,
+                    processed=e.processed,
+                    is_breaking_change=e.is_breaking_change,
+                    created_at=e.created_at.isoformat() if e.created_at else "",
+                    processing_result=e.processing_result
+                )
+                for e in events
+            ]
+            
+    except Exception as e:
+        logger.error("List GitHub events error", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/decisions-full", response_model=List[FullDecisionResponse])
+async def list_full_decisions(
+    team_id: Optional[str] = None,
+    limit: int = 20
+):
+    """
+    List decisions with full details including reasoning.
+    """
+    try:
+        async with get_session() as session:
+            query = select(Decision).order_by(desc(Decision.created_at)).limit(limit)
+            
+            if team_id:
+                query = query.where(Decision.team_id == team_id)
+            
+            result = await session.execute(query)
+            decisions = result.scalars().all()
+            
+            return [
+                FullDecisionResponse(
+                    id=d.id,
+                    title=d.title,
+                    summary=d.summary,
+                    reasoning=d.reasoning,
+                    alternatives_considered=d.alternatives_considered or [],
+                    context=d.context,
+                    impact=d.impact,
+                    source_type=d.source_type,
+                    source_id=d.source_id,
+                    source_url=d.source_url,
+                    decided_by=d.decided_by,
+                    participants=d.participants or [],
+                    affected_files=d.affected_files or [],
+                    affected_components=d.affected_components or [],
+                    category=d.category,
+                    importance=d.importance or "medium",
+                    created_at=d.created_at.isoformat() if d.created_at else ""
+                )
+                for d in decisions
+            ]
+            
+    except Exception as e:
+        logger.error("List full decisions error", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
 

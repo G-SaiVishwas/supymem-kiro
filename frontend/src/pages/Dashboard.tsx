@@ -13,10 +13,16 @@ import {
   ArrowRight,
   Sparkles,
   Activity,
+  Github,
+  Brain,
+  RefreshCw,
+  ExternalLink,
+  Lightbulb,
 } from 'lucide-react';
-import { getTeamProductivity, getTasks, getAutomationRules, searchKnowledge, getTeamActivities } from '../api/client';
+import { getTeamProductivity, getTasks, getAutomationRules, searchKnowledge, getTeamActivities, getGitHubEvents, getFullDecisions, type GitHubEvent, type FullDecision } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { AnimatedCounter } from '../components/effects';
+import { ExportButton } from '../components/export';
 import {
   AreaChart,
   Area,
@@ -35,6 +41,18 @@ const chartData = [
   { day: 'Sat', commits: 8, prs: 2, tasks: 3 },
   { day: 'Sun', commits: 5, prs: 1, tasks: 2 },
 ];
+
+// Format timestamp to IST (Indian Standard Time)
+function formatToIST(isoString: string): string {
+  const date = new Date(isoString);
+  return date.toLocaleTimeString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+}
 
 interface StatCardProps {
   title: string;
@@ -187,6 +205,19 @@ export default function Dashboard() {
     enabled: isManager,
   });
 
+  // GitHub Integration Demo queries
+  const { data: githubEvents, isLoading: eventsLoading, refetch: refetchEvents } = useQuery({
+    queryKey: ['githubEvents'],
+    queryFn: () => getGitHubEvents(undefined, 10),
+    refetchInterval: 5000, // Auto-refresh every 5 seconds
+  });
+
+  const { data: fullDecisions, isLoading: decisionsLoading, refetch: refetchDecisions } = useQuery({
+    queryKey: ['fullDecisions'],
+    queryFn: () => getFullDecisions(undefined, 10),
+    refetchInterval: 5000, // Auto-refresh every 5 seconds
+  });
+
   const myTasks = tasks?.filter((t) => t.assigned_to === user?.email) || [];
   const myPendingTasks = myTasks.filter((t) => t.status === 'pending').length;
   const myInProgressTasks = myTasks.filter((t) => t.status === 'in_progress').length;
@@ -250,8 +281,163 @@ export default function Dashboard() {
             <p className="text-[var(--text-secondary)] text-lg">{getRoleDescription()}</p>
           </div>
           
-          <div className={`px-6 py-3 rounded-2xl bg-gradient-to-r ${getRoleBadgeStyle()} shadow-lg animate-float`}>
-            <span className="text-white font-semibold text-lg capitalize">{userRole}</span>
+          <div className="flex items-center gap-4">
+            <ExportButton variant="secondary" />
+            <div className={`px-6 py-3 rounded-2xl bg-gradient-to-r ${getRoleBadgeStyle()} shadow-lg animate-float`}>
+              <span className="text-white font-semibold text-lg capitalize">{userRole}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* GitHub Integration Demo Section */}
+      <div className="glass-aurora rounded-3xl p-6 relative overflow-hidden animate-slide-up" style={{ animationDelay: '50ms' }}>
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#238636] rounded-full blur-[120px] opacity-10" />
+        
+        <div className="relative">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center">
+                <Github className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">GitHub Integration Demo</h2>
+                <p className="text-sm text-[var(--text-muted)]">Real-time webhook events & extracted decisions</p>
+              </div>
+            </div>
+            <button
+              onClick={() => { refetchEvents(); refetchDecisions(); }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--void-surface)] hover:bg-[var(--void-deeper)] transition-colors text-[var(--text-secondary)]"
+            >
+              <RefreshCw className={`w-4 h-4 ${eventsLoading || decisionsLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* GitHub Events */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider flex items-center gap-2">
+                <Activity className="w-4 h-4" />
+                Recent Webhook Events
+              </h3>
+              <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
+                {githubEvents && githubEvents.length > 0 ? (
+                  githubEvents.map((event: GitHubEvent) => (
+                    <div key={event.id} className="glass rounded-xl p-4 hover:bg-[var(--void-surface)] transition-colors">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                            event.event_type === 'push' ? 'bg-green-500/20 text-green-400' :
+                            event.event_type === 'pull_request' ? 'bg-purple-500/20 text-purple-400' :
+                            event.event_type === 'issues' ? 'bg-amber-500/20 text-amber-400' :
+                            'bg-cyan-500/20 text-cyan-400'
+                          }`}>
+                            {event.event_type === 'push' ? <GitCommit className="w-4 h-4" /> :
+                             event.event_type === 'pull_request' ? <GitPullRequest className="w-4 h-4" /> :
+                             <MessageSquare className="w-4 h-4" />}
+                          </div>
+                          <div>
+                            <p className="font-medium text-white text-sm">
+                              {event.event_type}
+                              {event.action && <span className="text-[var(--text-muted)]"> · {event.action}</span>}
+                            </p>
+                            <p className="text-xs text-[var(--text-muted)]">
+                              {event.repository} {event.sender && `by ${event.sender}`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {event.processed && (
+                            <span className="px-2 py-0.5 rounded-full text-xs bg-green-500/20 text-green-400">
+                              Processed
+                            </span>
+                          )}
+                          <span className="text-xs text-[var(--text-muted)]">
+                            {formatToIST(event.created_at)} IST
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-[var(--text-muted)]">
+                    <Github className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p>No GitHub events yet</p>
+                    <p className="text-sm mt-1">Push a commit or create a PR to see events here</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Extracted Decisions */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider flex items-center gap-2">
+                <Brain className="w-4 h-4" />
+                Extracted Decisions & Reasoning
+              </h3>
+              <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
+                {fullDecisions && fullDecisions.length > 0 ? (
+                  fullDecisions.map((decision: FullDecision) => (
+                    <div key={decision.id} className="glass rounded-xl p-4 hover:bg-[var(--void-surface)] transition-colors">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center flex-shrink-0">
+                          <Lightbulb className="w-4 h-4 text-purple-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-white text-sm truncate">{decision.title}</p>
+                          {decision.reasoning && (
+                            <p className="text-xs text-[var(--text-secondary)] mt-1 line-clamp-2">
+                              {decision.reasoning}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2 mt-2 flex-wrap">
+                            {decision.category && (
+                              <span className="px-2 py-0.5 rounded-full text-xs bg-cyan-500/20 text-cyan-400">
+                                {decision.category}
+                              </span>
+                            )}
+                            <span className={`px-2 py-0.5 rounded-full text-xs ${
+                              decision.importance === 'critical' ? 'bg-red-500/20 text-red-400' :
+                              decision.importance === 'high' ? 'bg-amber-500/20 text-amber-400' :
+                              'bg-green-500/20 text-green-400'
+                            }`}>
+                              {decision.importance}
+                            </span>
+                            {decision.source_url && (
+                              <a
+                                href={decision.source_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[var(--cosmic-cyan)] hover:underline text-xs flex items-center gap-1"
+                              >
+                                View Source <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                          {decision.alternatives_considered && decision.alternatives_considered.length > 0 && (
+                            <div className="mt-2 p-2 rounded-lg bg-[var(--void-deeper)]">
+                              <p className="text-xs text-[var(--text-muted)] mb-1">Alternatives considered:</p>
+                              {decision.alternatives_considered.slice(0, 2).map((alt, idx) => (
+                                <p key={idx} className="text-xs text-[var(--text-secondary)]">
+                                  • {alt.option} {alt.rejected_reason && `- ${alt.rejected_reason}`}
+                                </p>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-[var(--text-muted)]">
+                    <Brain className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p>No decisions extracted yet</p>
+                    <p className="text-sm mt-1">Make a commit with decision reasoning to see it here</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

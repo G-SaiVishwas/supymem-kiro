@@ -264,5 +264,137 @@ export const getTeamProductivity = async (teamId?: string, days = 7): Promise<Te
   return data;
 };
 
+// GitHub Events APIs (for demo)
+export interface GitHubEvent {
+  id: string;
+  event_type: string;
+  action: string | null;
+  repository: string;
+  sender: string | null;
+  pr_number: number | null;
+  issue_number: number | null;
+  processed: boolean;
+  is_breaking_change: boolean;
+  created_at: string;
+  processing_result: Record<string, any> | null;
+}
+
+export interface FullDecision {
+  id: string;
+  title: string;
+  summary: string | null;
+  reasoning: string | null;
+  alternatives_considered: Array<{
+    option: string;
+    pros?: string[];
+    cons?: string[];
+    rejected_reason?: string;
+  }>;
+  context: string | null;
+  impact: string | null;
+  source_type: string;
+  source_id: string | null;
+  source_url: string | null;
+  decided_by: string | null;
+  participants: string[];
+  affected_files: string[];
+  affected_components: string[];
+  category: string | null;
+  importance: string;
+  created_at: string;
+}
+
+export const getGitHubEvents = async (repository?: string, limit = 20): Promise<GitHubEvent[]> => {
+  const params = new URLSearchParams({ limit: limit.toString() });
+  if (repository) params.append('repository', repository);
+  const { data } = await legacyApi.get(`/github-events?${params}`);
+  return data;
+};
+
+export const getFullDecisions = async (teamId?: string, limit = 20): Promise<FullDecision[]> => {
+  const params = new URLSearchParams({ limit: limit.toString() });
+  if (teamId) params.append('team_id', teamId);
+  const { data } = await legacyApi.get(`/decisions-full?${params}`);
+  return data;
+};
+
+// =========================================================================
+// EXPORT APIs
+// =========================================================================
+
+export interface ExportOptions {
+  include_decisions: boolean;
+  include_knowledge: boolean;
+  include_tasks: boolean;
+  include_projects: boolean;
+  include_summaries: boolean;
+  include_statistics: boolean;
+  include_toc: boolean;
+}
+
+export interface ExportRequest {
+  team_id: string;
+  date_from?: string;
+  date_to?: string;
+  categories?: string[];
+  format: 'detailed' | 'summary';
+  options: ExportOptions;
+}
+
+export interface ExportPreview {
+  team_id: string;
+  counts: {
+    knowledge_entries: number;
+    decisions: number;
+    tasks: number;
+    projects: number;
+  };
+  categories: Record<string, number>;
+  estimated_pages: number;
+  available_sections: string[];
+}
+
+export const getExportPreview = async (teamId: string): Promise<ExportPreview> => {
+  const { data } = await legacyApi.get(`/export/preview?team_id=${teamId}`);
+  return data;
+};
+
+export const downloadExportPdf = async (request: ExportRequest): Promise<Blob> => {
+  const response = await legacyApi.post('/export/pdf', request, {
+    responseType: 'blob',
+  });
+  return response.data;
+};
+
+export const downloadExportPdfUrl = (
+  teamId: string,
+  options?: Partial<ExportOptions>,
+  dateFrom?: string,
+  dateTo?: string,
+  format: 'detailed' | 'summary' = 'detailed'
+): string => {
+  const params = new URLSearchParams({ team_id: teamId, format });
+  
+  if (dateFrom) params.append('date_from', dateFrom);
+  if (dateTo) params.append('date_to', dateTo);
+  
+  if (options) {
+    if (options.include_decisions !== undefined) 
+      params.append('include_decisions', String(options.include_decisions));
+    if (options.include_knowledge !== undefined) 
+      params.append('include_knowledge', String(options.include_knowledge));
+    if (options.include_tasks !== undefined) 
+      params.append('include_tasks', String(options.include_tasks));
+    if (options.include_projects !== undefined) 
+      params.append('include_projects', String(options.include_projects));
+    if (options.include_summaries !== undefined) 
+      params.append('include_summaries', String(options.include_summaries));
+    if (options.include_statistics !== undefined) 
+      params.append('include_statistics', String(options.include_statistics));
+  }
+  
+  return `/api/v1/export/pdf?${params.toString()}`;
+};
+
 export default legacyApi;
 
