@@ -19,6 +19,7 @@ import {
   Target,
   Activity,
   Shield,
+  BookOpen,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { CursorGlow } from '../components/effects';
@@ -45,6 +46,7 @@ const systemNavigation: NavItem[] = [
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard, gradient: 'from-cyan-500 to-blue-500' },
   { name: 'Ask Agent', href: '/ask', icon: Brain, gradient: 'from-purple-500 to-pink-500' },
+  { name: 'Central Knowledge', href: '/central-knowledge', icon: BookOpen, gradient: 'from-violet-500 to-purple-500' },
   { name: 'Tasks', href: '/tasks', icon: CheckSquare, gradient: 'from-green-500 to-emerald-500' },
   { name: 'Decisions', href: '/decisions', icon: GitBranch, gradient: 'from-orange-500 to-amber-500' },
   { name: 'Automations', href: '/automations', icon: Zap, gradient: 'from-yellow-500 to-orange-500' },

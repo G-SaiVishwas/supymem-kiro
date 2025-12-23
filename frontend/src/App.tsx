@@ -29,6 +29,9 @@ import OrgHealth from './pages/OrgHealth';
 import Intents from './pages/Intents';
 import Trust from './pages/Trust';
 
+// Central Knowledge
+import CentralKnowledge from './pages/CentralKnowledge';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -93,6 +96,9 @@ function App() {
                               <Route path="/decisions" element={<Decisions />} />
                               <Route path="/automations" element={<Automations />} />
                               <Route path="/summaries" element={<Summaries />} />
+                              
+                              {/* Central Knowledge - accessible to all, edit for manager+ */}
+                              <Route path="/central-knowledge" element={<CentralKnowledge />} />
                             </Routes>
                           </MainLayout>
                         </ProtectedRoute>

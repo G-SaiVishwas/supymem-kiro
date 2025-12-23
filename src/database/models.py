@@ -1307,3 +1307,77 @@ class NotesSession(Base):
         Index("idx_notes_session_project", "project_id"),
         Index("idx_notes_session_status", "status"),
     )
+
+
+# ============================================================================
+# CENTRAL KNOWLEDGE DATABASE
+# ============================================================================
+
+class CentralKnowledgeStatus(str, enum.Enum):
+    """Status for central knowledge entries."""
+    DRAFT = "draft"
+    PUBLISHED = "published"
+    ARCHIVED = "archived"
+
+
+class CentralKnowledgeCategory(str, enum.Enum):
+    """Categories for central knowledge entries."""
+    PROCESS = "process"           # Team processes, workflows
+    CONVENTION = "convention"     # Coding standards, naming conventions
+    ARCHITECTURE = "architecture" # System design, architecture decisions
+    ONBOARDING = "onboarding"     # New member info, setup guides
+    GUIDELINE = "guideline"       # Best practices, recommendations
+    FAQ = "faq"                   # Frequently asked questions
+    OTHER = "other"
+
+
+class CentralKnowledge(Base):
+    """
+    Central Knowledge Database - Curated, authoritative team knowledge.
+    Created and managed by admins and managers as the source of truth.
+    """
+    __tablename__ = "central_knowledge"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    organization_id = Column(String(36), ForeignKey("organizations.id"), nullable=False)
+    team_id = Column(String(36), ForeignKey("teams.id"), nullable=True)  # None = org-wide
+    
+    # Content
+    title = Column(String(500), nullable=False)
+    content = Column(Text, nullable=False)  # Markdown content
+    summary = Column(Text, nullable=True)   # AI-generated or manual summary
+    category = Column(String(50), nullable=False)  # Uses CentralKnowledgeCategory
+    
+    # Status & Versioning
+    status = Column(String(20), default="draft")  # Uses CentralKnowledgeStatus
+    version = Column(Integer, default=1)
+    
+    # Vector embedding for semantic search
+    embedding = Column(Vector(768), nullable=True)
+    
+    # Attribution
+    created_by = Column(String(36), ForeignKey("users.id"), nullable=False)
+    last_edited_by = Column(String(36), ForeignKey("users.id"), nullable=True)
+    
+    # Metadata
+    tags = Column(JSON, default=list)
+    related_documents = Column(JSON, default=list)  # IDs of related knowledge entries
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    published_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    creator = relationship("User", foreign_keys=[created_by])
+    editor = relationship("User", foreign_keys=[last_edited_by])
+    organization = relationship("Organization")
+    team = relationship("Team")
+
+    __table_args__ = (
+        Index("idx_central_knowledge_org", "organization_id"),
+        Index("idx_central_knowledge_team", "team_id"),
+        Index("idx_central_knowledge_status", "status"),
+        Index("idx_central_knowledge_category", "category"),
+        Index("idx_central_knowledge_created", "created_at"),
+    )

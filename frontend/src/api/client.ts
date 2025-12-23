@@ -396,5 +396,136 @@ export const downloadExportPdfUrl = (
   return `/api/v1/export/pdf?${params.toString()}`;
 };
 
+// =========================================================================
+// CENTRAL KNOWLEDGE APIs
+// =========================================================================
+
+export interface CentralKnowledgeEntry {
+  id: string;
+  organization_id: string;
+  team_id: string | null;
+  title: string;
+  content: string;
+  summary: string | null;
+  category: string;
+  status: 'draft' | 'published' | 'archived';
+  version: number;
+  tags: string[];
+  related_documents: string[];
+  created_by: string;
+  created_by_name: string | null;
+  last_edited_by: string | null;
+  last_edited_by_name: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  published_at: string | null;
+}
+
+export interface CentralKnowledgeCategory {
+  value: string;
+  label: string;
+}
+
+export interface CentralKnowledgeCreate {
+  title: string;
+  content: string;
+  category: string;
+  team_id?: string | null;
+  summary?: string | null;
+  tags?: string[];
+  status?: 'draft' | 'published';
+}
+
+export interface CentralKnowledgeUpdate {
+  title?: string;
+  content?: string;
+  summary?: string;
+  category?: string;
+  tags?: string[];
+  team_id?: string | null;
+}
+
+export interface CentralKnowledgeStats {
+  total: number;
+  by_status: Record<string, number>;
+  by_category: Record<string, number>;
+  published: number;
+  drafts: number;
+}
+
+export const getCentralKnowledge = async (
+  category?: string,
+  status?: string,
+  teamId?: string,
+  limit = 50,
+  offset = 0
+): Promise<{ entries: CentralKnowledgeEntry[]; count: number }> => {
+  const params = new URLSearchParams();
+  if (category) params.append('category', category);
+  if (status) params.append('status', status);
+  if (teamId) params.append('team_id', teamId);
+  params.append('limit', limit.toString());
+  params.append('offset', offset.toString());
+  const { data } = await legacyApi.get(`/central-knowledge?${params}`);
+  return data;
+};
+
+export const getCentralKnowledgeEntry = async (id: string): Promise<CentralKnowledgeEntry> => {
+  const { data } = await legacyApi.get(`/central-knowledge/${id}`);
+  return data;
+};
+
+export const getCentralKnowledgeCategories = async (): Promise<{ categories: CentralKnowledgeCategory[] }> => {
+  const { data } = await legacyApi.get('/central-knowledge/categories');
+  return data;
+};
+
+export const getCentralKnowledgeStats = async (): Promise<CentralKnowledgeStats> => {
+  const { data } = await legacyApi.get('/central-knowledge/stats');
+  return data;
+};
+
+export const createCentralKnowledge = async (
+  entry: CentralKnowledgeCreate
+): Promise<CentralKnowledgeEntry> => {
+  const { data } = await legacyApi.post('/central-knowledge', entry);
+  return data;
+};
+
+export const updateCentralKnowledge = async (
+  id: string,
+  updates: CentralKnowledgeUpdate
+): Promise<CentralKnowledgeEntry> => {
+  const { data } = await legacyApi.put(`/central-knowledge/${id}`, updates);
+  return data;
+};
+
+export const publishCentralKnowledge = async (id: string): Promise<CentralKnowledgeEntry> => {
+  const { data } = await legacyApi.post(`/central-knowledge/${id}/publish`);
+  return data;
+};
+
+export const archiveCentralKnowledge = async (id: string): Promise<{ status: string; id: string }> => {
+  const { data } = await legacyApi.post(`/central-knowledge/${id}/archive`);
+  return data;
+};
+
+export const deleteCentralKnowledge = async (id: string): Promise<{ status: string; id: string }> => {
+  const { data } = await legacyApi.delete(`/central-knowledge/${id}`);
+  return data;
+};
+
+export const searchCentralKnowledge = async (
+  query: string,
+  teamId?: string,
+  limit = 10
+): Promise<{ results: Array<{ id: string; title: string; content: string; category: string; score: number }> }> => {
+  const params = new URLSearchParams({ query });
+  if (teamId) params.append('team_id', teamId);
+  params.append('limit', limit.toString());
+  const { data } = await legacyApi.post(`/central-knowledge/search?${params}`);
+  return data;
+};
+
 export default legacyApi;
 
