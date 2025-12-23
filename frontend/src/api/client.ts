@@ -21,7 +21,7 @@ const axiosInstance = axios.create({
 
 // Default team ID - can be configured via localStorage or env
 export const getDefaultTeamId = (): string => {
-  return localStorage.getItem('supymem_team_id') || 'team-demo-001';
+  return localStorage.getItem('supymem_team_id') || '9a982d9f-94d1-4fec-b60e-3edec2804fa1';
 };
 
 export const setDefaultTeamId = (teamId: string): void => {
