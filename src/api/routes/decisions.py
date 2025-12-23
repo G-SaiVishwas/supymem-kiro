@@ -4,12 +4,16 @@ Decisions & Challenge API Routes
 Endpoints for viewing decisions and challenging them.
 """
 
-from typing import Optional, List
+from typing import Optional, List, Any
+from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
+from sqlalchemy import select, desc
 
 from src.services.debate import challenge_service
 from src.config.logging import get_logger
+from src.database.session import get_session
+from src.database.models import GitHubEvent, Decision
 
 logger = get_logger(__name__)
 router = APIRouter()

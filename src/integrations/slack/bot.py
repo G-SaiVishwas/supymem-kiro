@@ -18,6 +18,7 @@ from src.agents.knowledge_agent import query_agent
 from src.vectors.embeddings import embedding_service
 from src.vectors.qdrant_client import vector_store
 from src.services.automation import nl_parser, rule_manager
+from src.integrations.slack.team_mapper import get_team_id_for_slack_channel
 from src.config.settings import get_settings
 from src.config.logging import get_logger
 
@@ -54,9 +55,11 @@ async def handle_mention(event, say, client):
         automation_keywords = ["when", "after", "once", "if", "remind", "notify when"]
         if any(kw in clean_text.lower() for kw in automation_keywords):
             # Try to parse as automation
+            # Map channel to team for automation
+            automation_team_id = await get_team_id_for_slack_channel(channel)
             result = await nl_parser.parse_and_confirm(
                 instruction=clean_text,
-                context={"team_id": channel, "user": user}
+                context={"team_id": automation_team_id, "user": user}
             )
             
             if result.get("success") and result.get("confidence", 0) > 0.7:
@@ -99,11 +102,14 @@ async def handle_mention(event, say, client):
                 ts=event.get("thread_ts")
             )
 
+        # Map Slack channel to database team
+        team_id = await get_team_id_for_slack_channel(channel)
+        
         # Query the agent
         response = await query_agent(
             message=clean_text,
             user_id=user,
-            team_id=channel,
+            team_id=team_id,
             thread_id=f"{channel}-{thread_ts}"
         )
 
@@ -153,10 +159,13 @@ async def handle_supymem_command(ack, respond, command):
         return
 
     try:
+        # Map Slack channel to database team
+        team_id = await get_team_id_for_slack_channel(channel_id)
+        
         response = await query_agent(
             message=text,
             user_id=user_id,
-            team_id=channel_id
+            team_id=team_id
         )
 
         await respond(
@@ -188,15 +197,19 @@ async def handle_remember_command(ack, respond, command):
         return
 
     try:
-        # Store in knowledge base
+        # Map Slack channel to database team for cross-platform integration
+        team_id = await get_team_id_for_slack_channel(channel_id)
+        
+        # Store in knowledge base with proper team_id
         embeddings = await embedding_service.embed(text)
         await vector_store.insert(
             vectors=embeddings,
             payloads=[{
                 "content": text,
                 "source": "slack",
-                "team_id": channel_id,
-                "user_id": user_id
+                "team_id": team_id,
+                "user_id": user_id,
+                "slack_channel_id": channel_id  # Keep original for reference
             }]
         )
 
@@ -234,10 +247,13 @@ I'll confirm my understanding before creating the rule."""
         return
 
     try:
+        # Map channel to team for automation
+        team_id = await get_team_id_for_slack_channel(channel_id)
+        
         # Parse the instruction
         result = await nl_parser.parse_and_confirm(
             instruction=text,
-            context={"team_id": channel_id, "user": user_id}
+            context={"team_id": team_id, "user": user_id}
         )
 
         if not result.get("success"):
@@ -366,10 +382,13 @@ async def handle_confirm_automation(ack, body, respond):
     instruction = body.get("actions", [{}])[0].get("value", "")
 
     try:
+        # Map channel to team
+        team_id = await get_team_id_for_slack_channel(channel_id)
+        
         # Parse again and create the rule
         command, error = await nl_parser.parse(
             instruction=instruction,
-            context={"team_id": channel_id, "user": user_id}
+            context={"team_id": team_id, "user": user_id}
         )
 
         if error or not command:
@@ -380,9 +399,9 @@ async def handle_confirm_automation(ack, body, respond):
             )
             return
 
-        # Create the automation rule
+        # Create the automation rule with mapped team_id
         rule_id = await rule_manager.create_rule(
-            team_id=channel_id,
+            team_id=team_id,
             created_by=user_id,
             command=command
         )
