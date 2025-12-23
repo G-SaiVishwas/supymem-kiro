@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SupymemAPI, DecisionDetail, DecisionSummary } from '../api';
+import { SupymemAPI, DecisionDetail } from '../api';
 
 export class DecisionTracePanel {
     public static currentPanel: DecisionTracePanel | undefined;
@@ -731,7 +731,7 @@ export class DecisionTracePanel {
     }
 
     private _escapeHtml(text: string): string {
-        if (!text) return '';
+        if (!text) {return '';}
         return text
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
@@ -740,7 +740,7 @@ export class DecisionTracePanel {
     }
 
     private _formatMarkdown(text: string): string {
-        if (!text) return '';
+        if (!text) {return '';}
         return text
             .replace(/\n/g, '<br>')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')

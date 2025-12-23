@@ -101,13 +101,6 @@ export class TaskItem extends vscode.TreeItem {
             return;
         }
 
-        const priorityIcons: Record<string, string> = {
-            urgent: 'flame',
-            high: 'arrow-up',
-            medium: 'dash',
-            low: 'arrow-down'
-        };
-
         const priorityColors: Record<string, string> = {
             urgent: '🔴',
             high: '🟠',

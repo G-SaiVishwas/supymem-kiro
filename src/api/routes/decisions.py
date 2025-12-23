@@ -1,14 +1,15 @@
 """
 Decisions & Challenge API Routes
 
-Endpoints for viewing decisions and challenging them.
+Endpoints for viewing, creating, updating, and challenging decisions.
 """
 
-from typing import Optional, List
-from fastapi import APIRouter, HTTPException
+from typing import Optional, List, Dict, Any
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from src.services.debate import challenge_service
+from src.services.decisions import DecisionService
 from src.config.logging import get_logger
 
 logger = get_logger(__name__)
@@ -180,7 +181,7 @@ async def get_decision(decision_id: str):
     Get details of a specific decision.
     """
     try:
-        decision = await challenge_service._get_decision_by_id(decision_id)
+        decision = await DecisionService.get_decision(decision_id)
         
         if not decision:
             raise HTTPException(status_code=404, detail="Decision not found")
@@ -205,5 +206,161 @@ async def get_decision(decision_id: str):
         raise
     except Exception as e:
         logger.error("Get decision error", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# DECISION CRUD OPERATIONS
+# ============================================================================
+
+class DecisionCreate(BaseModel):
+    team_id: str
+    title: str
+    summary: Optional[str] = None
+    reasoning: Optional[str] = None
+    context: Optional[str] = None
+    impact: Optional[str] = None
+    decided_by: Optional[str] = None
+    participants: Optional[List[str]] = None
+    affected_files: Optional[List[str]] = None
+    affected_components: Optional[List[str]] = None
+    category: Optional[str] = None
+    importance: str = "medium"
+    source_type: str = "manual"
+    source_url: Optional[str] = None
+    alternatives_considered: Optional[List[Dict[str, Any]]] = None
+    tags: Optional[List[str]] = None
+
+
+class DecisionUpdate(BaseModel):
+    title: Optional[str] = None
+    summary: Optional[str] = None
+    reasoning: Optional[str] = None
+    context: Optional[str] = None
+    impact: Optional[str] = None
+    status: Optional[str] = None
+    importance: Optional[str] = None
+    affected_files: Optional[List[str]] = None
+    affected_components: Optional[List[str]] = None
+    tags: Optional[List[str]] = None
+
+
+@router.post("/decisions")
+async def create_decision(data: DecisionCreate):
+    """Create a new decision record."""
+    try:
+        decision = await DecisionService.create_decision(
+            team_id=data.team_id,
+            title=data.title,
+            summary=data.summary,
+            reasoning=data.reasoning,
+            context=data.context,
+            impact=data.impact,
+            decided_by=data.decided_by,
+            participants=data.participants,
+            affected_files=data.affected_files,
+            affected_components=data.affected_components,
+            category=data.category,
+            importance=data.importance,
+            source_type=data.source_type,
+            source_url=data.source_url,
+            alternatives_considered=data.alternatives_considered,
+            tags=data.tags
+        )
+        return decision
+    except Exception as e:
+        logger.error("Create decision error", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/decisions/{decision_id}")
+async def update_decision(decision_id: str, data: DecisionUpdate):
+    """Update an existing decision."""
+    try:
+        decision = await DecisionService.update_decision(
+            decision_id=decision_id,
+            title=data.title,
+            summary=data.summary,
+            reasoning=data.reasoning,
+            context=data.context,
+            impact=data.impact,
+            status=data.status,
+            importance=data.importance,
+            affected_files=data.affected_files,
+            affected_components=data.affected_components,
+            tags=data.tags
+        )
+        if not decision:
+            raise HTTPException(status_code=404, detail="Decision not found")
+        return decision
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Update decision error", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/decisions/{decision_id}")
+async def delete_decision(decision_id: str):
+    """Delete a decision."""
+    try:
+        success = await DecisionService.delete_decision(decision_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Decision not found")
+        return {"status": "deleted", "id": decision_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Delete decision error", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/decisions/{decision_id}/supersede")
+async def supersede_decision(
+    decision_id: str,
+    new_decision_id: str = Query(..., description="ID of the new decision")
+):
+    """Mark a decision as superseded by another."""
+    try:
+        success = await DecisionService.supersede_decision(decision_id, new_decision_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Decision not found")
+        return {"status": "superseded", "id": decision_id, "superseded_by": new_decision_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Supersede decision error", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/decisions/file/{file_path:path}")
+async def get_decisions_for_file(file_path: str, team_id: str = "default"):
+    """Get all decisions affecting a specific file."""
+    try:
+        decisions = await DecisionService.get_decisions_for_file(file_path, team_id)
+        return {"decisions": decisions, "count": len(decisions)}
+    except Exception as e:
+        logger.error("Get file decisions error", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/decisions/{decision_id}/challenge")
+async def challenge_specific_decision(
+    decision_id: str,
+    question: str,
+    challenger_id: str = "anonymous",
+    team_id: str = "default"
+):
+    """Challenge a specific decision with a question."""
+    try:
+        result = await DecisionService.challenge_decision(
+            decision_id=decision_id,
+            question=question,
+            challenger_id=challenger_id,
+            team_id=team_id
+        )
+        return result
+    except Exception as e:
+        logger.error("Challenge decision error", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -110,16 +110,6 @@ export class IntentPanelProvider implements vscode.WebviewViewProvider {
             return;
         }
 
-        const detail = [
-            `**${constraint.description}**`,
-            '',
-            `- **Type:** ${constraint.type}`,
-            `- **Severity:** ${constraint.severity}`,
-            constraint.approved_by ? `- **Approved by:** ${constraint.approved_by}` : '',
-            constraint.approved_at ? `- **Approved at:** ${constraint.approved_at}` : '',
-            constraint.threshold ? `- **Threshold:** ${JSON.stringify(constraint.threshold)}` : ''
-        ].filter(Boolean).join('\n');
-
         const panel = vscode.window.createWebviewPanel(
             'supymemConstraint',
             `Constraint: ${constraint.type}`,
@@ -383,13 +373,6 @@ export class IntentPanelProvider implements vscode.WebviewViewProvider {
     }
 
     private _renderConstraint(constraint: Constraint): string {
-        const severityColors: Record<string, string> = {
-            critical: '#ff4444',
-            high: '#ff8800',
-            medium: '#ffcc00',
-            low: '#44bb44'
-        };
-        
         const severityIcons: Record<string, string> = {
             critical: '🔴',
             high: '🟠',
@@ -829,7 +812,7 @@ export class IntentPanelProvider implements vscode.WebviewViewProvider {
     }
 
     private _escapeHtml(text: string): string {
-        if (!text) return '';
+        if (!text) {return '';}
         return text
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')

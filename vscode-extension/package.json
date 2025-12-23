@@ -87,6 +87,11 @@
         "icon": "$(pulse)"
       },
       {
+        "command": "supymem.showKnowledgeManager",
+        "title": "Supymem: Open Knowledge Manager",
+        "icon": "$(library)"
+      },
+      {
         "command": "supymem.analyzeChange",
         "title": "Supymem: Analyze Pending Changes",
         "icon": "$(git-compare)"
@@ -132,6 +137,11 @@
         "command": "supymem.checkConstraints",
         "key": "ctrl+shift+c",
         "mac": "cmd+shift+c"
+      },
+      {
+        "command": "supymem.showKnowledgeManager",
+        "key": "ctrl+shift+m",
+        "mac": "cmd+shift+m"
       }
     ],
     "configuration": {

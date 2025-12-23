@@ -6,8 +6,9 @@ import { ActivityProvider } from './providers/activity';
 import { AgentStatusProvider, AgentStatusPanel } from './providers/agents';
 import { IntentPanelProvider } from './panels/IntentPanel';
 import { DecisionTracePanel } from './panels/DecisionTrace';
-import { ChangeWarningPanel, ChangeWatcher } from './panels/ChangeWarningPanel';
+import { ChangeWatcher } from './panels/ChangeWarningPanel';
 import { ConstraintDecorations, ConstraintCodeLensProvider } from './decorations/constraints';
+import { KnowledgeManagerPanel } from './panels/KnowledgeManager';
 
 let api: SupymemAPI;
 let statusBarItem: vscode.StatusBarItem;
@@ -123,6 +124,11 @@ export function activate(context: vscode.ExtensionContext) {
         // Agent commands
         vscode.commands.registerCommand('supymem.showAgentStatus', () => {
             AgentStatusPanel.show(context.extensionUri, api);
+        }),
+        
+        // Knowledge Manager command
+        vscode.commands.registerCommand('supymem.showKnowledgeManager', () => {
+            KnowledgeManagerPanel.show(context.extensionUri, api);
         }),
         
         // Decoration commands
@@ -853,7 +859,7 @@ function getConstraintsWebviewContent(constraints: any[]): string {
 // ============================================================================
 
 function escapeHtml(text: string): string {
-    if (!text) return '';
+    if (!text) {return '';}
     return text
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -862,7 +868,7 @@ function escapeHtml(text: string): string {
 }
 
 function formatMarkdown(text: string): string {
-    if (!text) return '';
+    if (!text) {return '';}
     return text
         .replace(/\n/g, '<br>')
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')

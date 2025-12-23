@@ -3,11 +3,11 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    # Database
-    database_url: str = "postgresql+asyncpg://supymem:supymem_secret_change_me@localhost:5432/supymem"
+    # Database - MUST be set via environment variable
+    database_url: str = ""
 
-    # Redis
-    redis_url: str = "redis://:redis_secret_change_me@localhost:6379/0"
+    # Redis - MUST be set via environment variable
+    redis_url: str = ""
 
     # Qdrant
     qdrant_url: str = "http://localhost:6333"
@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     # Ollama
     ollama_base_url: str = "http://localhost:11434"
 
-    # LiteLLM
-    litellm_master_key: str = "sk-supymem"
+    # LiteLLM - MUST be set via environment variable
+    litellm_master_key: str = ""
 
     # Cloud APIs (optional)
     openai_api_key: str = ""
@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     # App
     log_level: str = "INFO"
     debug: bool = False
-    secret_key: str = "change-me"
+    secret_key: str = ""  # MUST be set via environment variable
 
     class Config:
         env_file = ".env"
